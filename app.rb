@@ -37,17 +37,25 @@ get '/' do
 
   issues = []
 
-  def closest(strings, s)
+  def closest(strings, s, suffix)
+    matches = []
     distances = strings.map { |s2| levenshtein_distance(s, s2) }
-    strings[distances.index(distances.min)]
+    distances.each_with_index do |d, i|
+      if d <= 4
+        matches << strings[i]
+      end
+    end
+    if matches.any?
+      "<ul><li>Close #{suffix} matches: #{matches.map { |m| "<code>#{m}</code>" }.join(", ")}</li></ul>"
+    end
   end
 
   (ea_set - at_set).each do |name|
-    issues << "#{name} is in EveryAction but not Airtable! Closest AT match is \"#{closest(at_names, name)}\""
+    issues << "<code>#{name}</code> is in EveryAction but not Airtable! #{closest(at_names, name, "AT")}"
   end
 
   (at_set - ea_set).each do |name|
-    issues << "#{name} is in Airtable but not EveryAction! Closest EA match is \"#{closest(ea_names, name)}\""
+    issues << "<code>#{name}</code> is in Airtable but not EveryAction! #{closest(ea_names, name, "EA")}"
   end
 
   unless ea_names.size == ea_set.size
@@ -58,18 +66,30 @@ get '/' do
       dupes << name if counts[name] > 1
     end
     dupes.each do |dupe|
-      issues << "#{dupe} is listed in EA #{counts[dupe]} times!"
+      issues << "<code>#{dupe}</code> is listed in EA #{counts[dupe]} times!"
     end
   end
 
   if issues.length
     <<-HTML
       <html>
+        <head>
+          <style>
+            code {
+              color: #d20600;
+              padding: 1px 5px;
+              background: #f8f8f8;
+              border-radius: 5px;
+              margin: 0 2px;
+              white-space: nowrap;
+            }
+          </style>
+        </head>
         <body>
           <h1>Airtable and EveryAction have some issues 😬</h1>
-          <ul>
+          <ol>
             #{issues.map{|i| %{<li>#{i}</li>} }.join("\n")}
-          </ul>
+          </ol>
         </body>
       </html>
     HTML

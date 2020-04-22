@@ -18,12 +18,24 @@ GEM
     mime-types-data (3.2019.1009)
     multi_xml (0.6.0)
     multipart-post (2.1.1)
+    mustermann (1.1.1)
+      ruby2_keywords (~> 0.0.1)
     net-http-persistent (3.1.0)
       connection_pool (~> 2.2)
     pry (0.13.1)
       coderay (~> 1.1)
       method_source (~> 1.0)
+    rack (2.2.2)
+    rack-protection (2.0.8.1)
+      rack
     rb-readline (0.5.5)
+    ruby2_keywords (0.0.2)
+    sinatra (2.0.8.1)
+      mustermann (~> 1.0)
+      rack (~> 2.0)
+      rack-protection (= 2.0.8.1)
+      tilt (~> 2.0)
+    tilt (2.0.10)
 
 PLATFORMS
   ruby
@@ -34,6 +46,7 @@ DEPENDENCIES
   httparty
   pry
   rb-readline
+  sinatra
 
 RUBY VERSION
    ruby 2.6.3p62
