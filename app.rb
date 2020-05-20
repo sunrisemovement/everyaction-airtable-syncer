@@ -2,16 +2,31 @@ require 'httparty'
 require 'dotenv'
 require 'pry'
 require 'sinatra'
+require 'airrecord'
 
 include Gem::Text
 
 Dotenv.load
+
+Airrecord.api_key = ENV['AIRTABLE_API_KEY']
 
 USER = ENV.fetch('USERNAME', 'admin')
 PASS = ENV.fetch('PASSWORD', 'admin')
 
 use Rack::Auth::Basic, "Restricted Area" do |user, pass|
   user == USER && pass == PASS
+end
+
+class Hub < Airrecord::Table
+  self.base_key = ENV['AIRTABLE_APP_KEY']
+  self.table_name = 'Hubs'
+
+  def should_appear_on_everyaction?
+    return false unless self['Map?'] == true
+    return false unless self['Latitude'] && self['Longitude']
+    return false unless self['City'] && self['Name']
+    true
+  end
 end
 
 get '/' do
@@ -28,12 +43,19 @@ get '/' do
 
   ea_names = hub_field['availableValues'].map{ |v| v['name'].strip }
 
-  airtable_hubs = JSON.parse(HTTParty.get("https://sunrise-hub-json.s3.amazonaws.com/hubs.json"))["map_data"]
 
-  at_names = airtable_hubs.map { |h| h['name'].sub(/^Sunrise\s/, '').strip }
+  airtable_hubs = Hub.all
+
+  at_names_ea = airtable_hubs.
+    select(&:should_appear_on_everyaction?).
+    map { |h| h['Name'].sub(/^Sunrise\s/, '').strip }
+
+  at_names_all = airtable_hubs.
+    map { |h| h['Name'].sub(/^Sunrise\s/, '').strip }
 
   ea_set = Set.new(ea_names)
-  at_set = Set.new(at_names)
+  at_set = Set.new(at_names_ea)
+  at_all = Set.new(at_names_all)
 
   issues = []
 
@@ -41,7 +63,7 @@ get '/' do
     matches = []
     distances = strings.map { |s2| levenshtein_distance(s, s2) }
     distances.each_with_index do |d, i|
-      if d <= 4
+      if d <= 2
         matches << strings[i]
       end
     end
@@ -50,12 +72,12 @@ get '/' do
     end
   end
 
-  (ea_set - at_set).each do |name|
-    issues << "<code>#{name}</code> is in EveryAction but not Airtable! #{closest(at_names, name, "AT")}"
+  (ea_set - at_all).each do |name|
+    issues << "EveryAction contains <code>#{name}</code> but Airtable does not! #{closest(at_names_all, name, "AT")}"
   end
 
   (at_set - ea_set).each do |name|
-    issues << "<code>#{name}</code> is in Airtable but not EveryAction! #{closest(ea_names, name, "EA")}"
+    issues << "Airtable contains <code>#{name}</code> (as an active hub) but EveryAction does not! #{closest(ea_names, name, "EA")}"
   end
 
   unless ea_names.size == ea_set.size
