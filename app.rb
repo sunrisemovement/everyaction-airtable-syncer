@@ -92,7 +92,7 @@ get '/' do
     end
   end
 
-  if issues.length
+  if issues.length > 0
     <<-HTML
       <html>
         <head>
@@ -120,7 +120,7 @@ get '/' do
       <html>
         <body>
           <h1>Airtable and EveryAction are </h1>
-          <img src="https://pbs.twimg.com/profile_images/1240763924380815368/Z3SIqsSI_400x400.jpg">
+          <img src="/nsync.jpg" style="width: 100%">
         </body>
       </html>
     HTML
