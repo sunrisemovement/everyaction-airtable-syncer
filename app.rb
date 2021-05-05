@@ -46,12 +46,16 @@ get '/' do
 
   airtable_hubs = Hub.all
 
+  def friendly_name(n)
+    n.to_s.strip.length > 0 ? n.sub(/^Sunrise\s/, '').strip : '(no name provided)'
+  end
+
   at_names_ea = airtable_hubs.
     select(&:should_appear_on_everyaction?).
-    map { |h| h['Name'].sub(/^Sunrise\s/, '').strip }
+    map { |h| friendly_name(h['Name']) }
 
   at_names_all = airtable_hubs.
-    map { |h| h['Name'].sub(/^Sunrise\s/, '').strip }
+    map { |h| friendly_name(h['Name']) }
 
   ea_set = Set.new(ea_names)
   at_set = Set.new(at_names_ea)
@@ -60,10 +64,11 @@ get '/' do
   issues = []
 
   def closest(strings, s, suffix)
+    return if s == '(no name provided)'
     matches = []
     distances = strings.map { |s2| levenshtein_distance(s, s2) }
     distances.each_with_index do |d, i|
-      if d <= 2
+      if d <= 2 && strings[i] != '(no name provided)'
         matches << strings[i]
       end
     end
